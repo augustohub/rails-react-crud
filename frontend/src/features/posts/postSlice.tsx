@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import produce from "immer";
 import { RootState } from "../../app/store"
-import { fetchPosts, createPost } from "./postAPI";
+import { fetchPosts, createPost, destroyPost } from "./postAPI";
 
 export enum Statuses {
   Initial = "Not Fetched",
@@ -30,6 +30,17 @@ export interface PostFormData {
     title: string;
     body: string;
   }
+}
+
+export interface PostDeleteData {
+  post: {
+    post_id: number;
+  }
+}
+
+export interface PostUpdateData {
+  post_id: number;
+  post: PostState;
 }
 
 const initialState: PostsState = {
@@ -63,6 +74,15 @@ export const createPostAsync = createAsyncThunk(
   }
 )
 
+export const destroyPostAsync = createAsyncThunk(
+  'post/destroyPost',
+  async (payload: PostDeleteData) => {
+    const response = await destroyPost(payload);
+
+    return response;
+  }
+)
+
 export const postSlice = createSlice({
   name: "posts",
   initialState,
@@ -85,6 +105,7 @@ export const postSlice = createSlice({
           draftState.status = Statuses.Error;
         })
       })
+
       /**
        * Update Section
       */
@@ -104,6 +125,27 @@ export const postSlice = createSlice({
           draftState.status = Statuses.Error;
         })
       })
+
+      /**
+       * Destroy Section
+       */
+      .addCase(destroyPostAsync.pending, (state) => {
+        return produce(state, (draftState) => {
+          draftState.status = Statuses.Loading;
+        })
+      })
+      .addCase(destroyPostAsync.fulfilled, (state, action) => {
+        return produce(state, (draftState) => {
+          draftState.posts = action.payload;
+          draftState.status = Statuses.UpToDate;
+        })
+      })
+      .addCase(destroyPostAsync.rejected, (state) => {
+        return produce(state, (draftState) => {
+          draftState.status = Statuses.Error;
+        })
+      })
+
   }
 })
 
