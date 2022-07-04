@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import produce from "immer";
 import { RootState } from "../../app/store"
-import { fetchPosts, createPost, destroyPost } from "./postAPI";
+import { fetchPosts, createPost, updatePost, destroyPost } from "./postAPI";
 
 export enum Statuses {
   Initial = "Not Fetched",
@@ -69,7 +69,14 @@ export const createPostAsync = createAsyncThunk(
   'posts/createPost',
   async (payload: PostFormData) => {
     const response = await createPost(payload);
+    return response;
+  }
+)
 
+export const updatePostAsync = createAsyncThunk(
+  'post/updatePost',
+  async(payload: PostFormData) => {
+    const response = await updatePost(payload);
     return response;
   }
 )
@@ -107,7 +114,7 @@ export const postSlice = createSlice({
       })
 
       /**
-       * Update Section
+       * Create Section
       */
       .addCase(createPostAsync.pending, (state) => {
         return produce(state, (draftState) => {
@@ -121,6 +128,30 @@ export const postSlice = createSlice({
         })
       })
       .addCase(createPostAsync.rejected, (state) => {
+        return produce(state, (draftState) => {
+          draftState.status = Statuses.Error;
+        })
+      })
+
+      /**
+       * Update Section
+      */
+      .addCase(updatePostAsync.pending, (state) => {
+        return produce(state, (draftState) => {
+          draftState.status = Statuses.Loading;
+        })
+      })
+      .addCase(updatePostAsync.fulfilled, (state, action) => {
+        return produce(state, (draftState) => {
+          const index = draftState.posts.findIndex(
+            post => post.id === action.payload.id
+          )
+
+          draftState.posts[index] = action.payload;
+          draftState.status = Statuses.UpToDate;
+        })
+      })
+      .addCase(updatePostAsync.rejected, (state) => {
         return produce(state, (draftState) => {
           draftState.status = Statuses.Error;
         })
@@ -145,7 +176,6 @@ export const postSlice = createSlice({
           draftState.status = Statuses.Error;
         })
       })
-
   }
 })
 
